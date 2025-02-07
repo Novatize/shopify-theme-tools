@@ -24,6 +24,8 @@ dist-ssr
 *.local
 shopify-theme-duplicator
 sections
+locales
+assets
 
 # Editor directories and files
 .idea
