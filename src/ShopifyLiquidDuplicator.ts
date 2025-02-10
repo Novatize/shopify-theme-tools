@@ -87,9 +87,9 @@ export default class ShopifyLiquidDuplicator {
       throw new Error(`Section file ${this.sectionName} does not exist.`);
     }
 
-    /*if (fs.existsSync(this.destinationPath)) {
+    if (fs.existsSync(this.destinationPath)) {
       throw new Error(`Prefixed Section file ${this.prefix}-${this.sectionName} already exist`);
-    }*/
+    }
 
     try {
       this.liquid = fs.readFileSync(this.sourcePath, "utf-8");
