@@ -26,7 +26,19 @@ export default class ShopifyLiquidDuplicator {
   }
 
   addStyleSheetImport(): ShopifyLiquidDuplicator {
-    this.liquid = `{{ '${this.prefix}-${this.sectionName}.css' | asset_url | stylesheet_tag }}\n${this.liquid}`;
+    const searchString = this.sectionName + ".css' | asset_url | stylesheet_tag }}";
+    const cssImportIndex = this.liquid.indexOf(searchString);
+    const cssImportString = `{{ '${this.prefix}-${this.sectionName}.css' | asset_url | stylesheet_tag }}`;
+
+    if (cssImportIndex > -1) {
+      this.liquid =
+        this.liquid.slice(0, cssImportIndex + searchString.length) +
+        "\n" +
+        cssImportString +
+        this.liquid.slice(cssImportIndex + searchString.length);
+    } else {
+      this.liquid = `${cssImportString}\n${this.liquid}`;
+    }
 
     return this;
   }

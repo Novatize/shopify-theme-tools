@@ -66,8 +66,6 @@ export default class ShopifyTransDuplicator {
             return `${p1}# ${p2}${p3}`;
           });
 
-        console.log(prefixedKeyValueString);
-
         jsonString = jsonString.replace(keyValueString, keyValueString + "," + prefixedKeyValueString);
       }
     } while (keyIndex !== -1);
