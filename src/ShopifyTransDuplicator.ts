@@ -56,12 +56,29 @@ export default class ShopifyTransDuplicator {
         const subJsonString = jsonString.slice(previousSpacingIndex);
         const closingBracketIndex = this.getClosingBracketIndex(subJsonString);
         const keyValueString = subJsonString.substring(0, closingBracketIndex + 1);
-        const prefixedKeyValueString = keyValueString.replace(`"${key}"`, `"${prefixedKey}"`);
+        const prefixedKeyValueString = keyValueString
+          .replace(`"${key}"`, `"${prefixedKey}"`)
+          .replace(/"name":\s*"([^"]+)"/, (match, p1) => {
+            const newValue = `# ${p1}`;
+            return `"name": "${newValue}"`;
+          })
+          .replace(/("presets":\s*{\s*"name":\s*")([^"]+)(")/, (match, p1, p2, p3) => {
+            return `${p1}# ${p2}${p3}`;
+          });
+
+        console.log(prefixedKeyValueString);
+
         jsonString = jsonString.replace(keyValueString, keyValueString + "," + prefixedKeyValueString);
       }
     } while (keyIndex !== -1);
 
     fs.writeFileSync(path, jsonString);
+  }
+
+  private getStringIndex(string: string, searchString: string, startAt: number, endAt: number) {
+    const index = string.indexOf(searchString, startAt);
+
+    return index > endAt ? null : index;
   }
 
   private getPreviousSpacingIndex(string: string, index: number) {
@@ -88,6 +105,8 @@ export default class ShopifyTransDuplicator {
         }
       }
     }
+
+    return -1;
   }
 
   private getClosingBracketIndex(string: string, startAt = 0) {

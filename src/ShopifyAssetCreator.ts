@@ -17,10 +17,10 @@ export default class ShopifyAssetCreator {
       throw new Error("Missing assets directory");
     }
 
-    const destinationPath = path.join(this.processDir, "assets", this.prefix + "-section-" + this.sectionName + ".css");
+    const destinationPath = path.join(this.processDir, "assets", this.prefix + "-" + this.sectionName + ".css");
 
     if (!fs.existsSync(destinationPath)) {
-      fs.writeFileSync(destinationPath, `.${this.prefix}-section-${this.sectionName} {\n  /* Your style here */\n}`);
+      fs.writeFileSync(destinationPath, `.${this.prefix}-${this.sectionName} {\n  /* Your style here */\n}`);
     }
   }
 
@@ -29,7 +29,7 @@ export default class ShopifyAssetCreator {
       throw new Error("Missing assets directory");
     }
 
-    const destinationPath = path.join(this.processDir, "assets", this.prefix + "-section-" + this.sectionName + ".js");
+    const destinationPath = path.join(this.processDir, "assets", this.prefix + "-" + this.sectionName + ".js");
 
     if (!fs.existsSync(destinationPath)) {
       fs.writeFileSync(destinationPath, "");

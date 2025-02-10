@@ -26,13 +26,13 @@ export default class ShopifyLiquidDuplicator {
   }
 
   addStyleSheetImport(): ShopifyLiquidDuplicator {
-    this.liquid = `{{ '${this.prefix}-section-${this.sectionName}.css' | asset_url | stylesheet_tag }}\n${this.liquid}`;
+    this.liquid = `{{ '${this.prefix}-${this.sectionName}.css' | asset_url | stylesheet_tag }}\n${this.liquid}`;
 
     return this;
   }
 
   addJsImport(): ShopifyLiquidDuplicator {
-    this.liquid = `<script src="{{ '${this.prefix}-section-${this.sectionName}.js' | asset_url }}" defer="defer"></script>\n${this.liquid}`;
+    this.liquid = `<script src="{{ '${this.prefix}-${this.sectionName}.js' | asset_url }}" defer="defer"></script>\n${this.liquid}`;
 
     return this;
   }
@@ -43,12 +43,12 @@ export default class ShopifyLiquidDuplicator {
 
     if (matchs && matchs[2]) {
       this.liquid = this.liquid.replace(regex, (match, beforeClass, classValue, afterClass) => {
-        return `{% schema %}${beforeClass}"class": "${classValue} ${this.prefix}-section-${this.sectionName}"${afterClass}{% endschema %}`;
+        return `{% schema %}${beforeClass}"class": "${classValue} ${this.prefix}-${this.sectionName}"${afterClass}{% endschema %}`;
       });
     } else {
       const search = 'class="';
       const classIndex = this.liquid.indexOf(search) + search.length;
-      this.liquid = `${this.liquid.slice(0, classIndex)}${this.prefix}-section-${this.sectionName} ${this.liquid.slice(classIndex)}`;
+      this.liquid = `${this.liquid.slice(0, classIndex)}${this.prefix}-${this.sectionName} ${this.liquid.slice(classIndex)}`;
     }
 
     return this;

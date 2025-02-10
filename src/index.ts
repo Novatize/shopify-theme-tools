@@ -1,19 +1,53 @@
 #!/usr/bin/env node
 
+import path from "path";
+import fs from "fs";
 import inquirer from "inquirer";
 import ShopifyLiquidDuplicator from "./ShopifyLiquidDuplicator";
 import ShopifyTransDuplicator from "./ShopifyTransDuplicator";
 import ShopifyAssetCreator from "./ShopifyAssetCreator";
 
 async function run() {
-  switch (process.argv[2] ?? "") {
-    case "duplicate:section":
-      duplicateSection();
-      break;
+  validateDevDependency();
+
+  const commands: Record<string, () => void> = {
+    "duplicate:section": duplicateSection,
+  };
+
+  try {
+    const command =
+      process.argv[2] ||
+      (
+        await inquirer.prompt([
+          {
+            type: "list",
+            name: "command",
+            message: "Command:",
+            default: "duplicate:section",
+            choices: ["duplicate:section"],
+          },
+        ])
+      ).command;
+
+    commands[command]();
+  } catch (error) {}
+}
+
+function validateDevDependency() {
+  const packageJsonPath = path.resolve(process.cwd(), "package.json");
+  const packageName = "shopify-theme-tools";
+  const data = fs.readFileSync(packageJsonPath, "utf-8");
+  const packageJson = JSON.parse(data);
+
+  if (!packageJson.devDependencies || !packageJson.devDependencies[packageName]) {
+    console.log(
+      "\x1b[33m",
+      `Warning: ${packageName} should be install as devDependencie. Run: npm i --save-dev ${packageName}\n`,
+    );
   }
 }
 
-async function duplicateSection() {
+function duplicateSection() {
   inquirer
     .prompt([
       {
