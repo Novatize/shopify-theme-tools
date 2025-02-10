@@ -1,9 +1,19 @@
+#!/usr/bin/env node
+
 import inquirer from "inquirer";
 import ShopifyLiquidDuplicator from "./ShopifyLiquidDuplicator";
 import ShopifyTransDuplicator from "./ShopifyTransDuplicator";
 import ShopifyAssetCreator from "./ShopifyAssetCreator";
 
 async function run() {
+  switch (process.argv[2] ?? "") {
+    case "duplicate:section":
+      duplicateSection();
+      break;
+  }
+}
+
+async function duplicateSection() {
   inquirer
     .prompt([
       {
@@ -78,8 +88,6 @@ async function run() {
         console.log(error);
       }
     });
-
-  console.log("Processus terminé !");
 }
 
 run();
