@@ -27,13 +27,9 @@ export default class ShopifyTrans {
 
         if (!settings.sections[transKey]) {
           settings.sections[transKey] = {
-            name: {
-              label: "# " + this.key.replace("-", " "),
-            },
+            name: "# " + this.key.replace("-", " "),
             presets: {
-              name: {
-                label: "# " + this.key.replace("-", " "),
-              },
+              name: "# " + this.key.replace("-", " "),
             },
           };
         }
