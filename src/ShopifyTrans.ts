@@ -26,10 +26,11 @@ export default class ShopifyTrans {
         const transKey = this.prefix + "-" + this.key;
 
         if (!settings.sections[transKey]) {
+          const name = "# " + this.key.replaceAll("-", " ");
           settings.sections[transKey] = {
-            name: "# " + this.key.replace("-", " "),
+            name,
             presets: {
-              name: "# " + this.key.replace("-", " "),
+              name,
             },
           };
         }
