@@ -1,6 +1,6 @@
 {
   "name": "shopify-theme-tools",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "bin": {
     "shopify-theme-tools": "dist/index.js"
   },
