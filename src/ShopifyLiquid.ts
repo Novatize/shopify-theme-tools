@@ -1,6 +1,5 @@
 import path from "path";
 import fs from "fs";
-import htmlCreator from "html-creator";
 
 export default class ShopifyLiquid {
   private processDir: string;

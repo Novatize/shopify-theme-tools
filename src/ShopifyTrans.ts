@@ -59,10 +59,7 @@ export default class ShopifyTrans {
 
   duplicateBase(): ShopifyTrans {
     this.paths.base.forEach((path) => {
-      const snakeKey = this.key.replace("-", "_");
-      const prefixedSnakeKey = this.prefix + "_" + snakeKey;
-
-      this.duplicate(path, snakeKey, prefixedSnakeKey);
+      this.duplicate(path, this.key, this.prefix + "-" + this.key);
     });
 
     return this;
@@ -78,8 +75,17 @@ export default class ShopifyTrans {
 
   private duplicate(path: string, key: string, prefixedKey: string) {
     let jsonString = fs.readFileSync(path, "utf-8");
-
     let keyIndex = -1;
+
+    if (jsonString.indexOf(`"${key}"`) === -1) {
+      if (key.includes("_")) {
+        key = key.replaceAll("_", "-");
+        prefixedKey = prefixedKey.replaceAll("_", "-");
+      } else {
+        key = key.replaceAll("-", "_");
+        prefixedKey = prefixedKey.replaceAll("-", "_");
+      }
+    }
 
     do {
       keyIndex = jsonString.indexOf(
