@@ -59,7 +59,7 @@ export default class ShopifyTrans {
 
   duplicateBase(): ShopifyTrans {
     this.paths.base.forEach((path) => {
-      this.duplicate(path, this.key, this.prefix + "-" + this.key);
+      this.duplicateSection(path, this.key, this.prefix + "-" + this.key);
     });
 
     return this;
@@ -67,15 +67,14 @@ export default class ShopifyTrans {
 
   duplicateSchema(): ShopifyTrans {
     this.paths.schema.forEach((path) => {
-      this.duplicate(path, this.key, this.prefix + "-" + this.key);
+      this.duplicateSection(path, this.key, this.prefix + "-" + this.key);
     });
 
     return this;
   }
 
-  private duplicate(path: string, key: string, prefixedKey: string) {
-    let jsonString = fs.readFileSync(path, "utf-8");
-    let keyIndex = -1;
+  private duplicateSection(path: string, key: string, prefixedKey: string) {
+    let jsonString = stripJsonComments(fs.readFileSync(path, "utf-8"));
 
     if (jsonString.indexOf(`"${key}"`) === -1) {
       if (key.includes("_")) {
@@ -87,110 +86,25 @@ export default class ShopifyTrans {
       }
     }
 
-    do {
-      keyIndex = jsonString.indexOf(
-        `"${key}"`,
-        keyIndex === -1 ? undefined : keyIndex + 1
+    const trans = JSON.parse(jsonString);
+
+    if (trans.sections[key] && !trans.sections[prefixedKey]) {
+      trans.sections[prefixedKey] = trans.sections[key];
+
+      if (trans.sections[key].name) {
+        trans.sections[prefixedKey].name = "# " + trans.sections[key].name;
+      }
+
+      if (trans.sections[key].presets) {
+        trans.sections[prefixedKey].presets.name =
+          "# " + trans.sections[key].presets.name;
+      }
+
+      fs.writeFileSync(
+        path,
+        this.getComment() + "\n" + JSON.stringify(trans, null, 2)
       );
-
-      if (keyIndex !== -1) {
-        const parentOpeningBracketIndex = this.getParentBracketIndex(
-          jsonString,
-          keyIndex
-        );
-        const parentClosingBracketIndex = this.getClosingBracketIndex(
-          jsonString,
-          parentOpeningBracketIndex
-        );
-        const prefixedKeyIndex = jsonString.indexOf(
-          `"${prefixedKey}"`,
-          parentOpeningBracketIndex
-        );
-
-        if (
-          prefixedKeyIndex > -1 &&
-          prefixedKeyIndex < parentClosingBracketIndex
-        ) {
-          continue;
-        }
-
-        const previousSpacingIndex = this.getPreviousSpacingIndex(
-          jsonString,
-          keyIndex
-        );
-        const subJsonString = jsonString.slice(previousSpacingIndex);
-        const closingBracketIndex = this.getClosingBracketIndex(subJsonString);
-        const keyValueString = subJsonString.substring(
-          0,
-          closingBracketIndex + 1
-        );
-        const prefixedKeyValueString = keyValueString
-          .replace(`"${key}"`, `"${prefixedKey}"`)
-          .replace(/"name":\s*"([^"]+)"/, (match, p1) => {
-            const newValue = `# ${p1}`;
-            return `"name": "${newValue}"`;
-          })
-          .replace(
-            /("presets":\s*{\s*"name":\s*")([^"]+)(")/,
-            (match, p1, p2, p3) => {
-              return `${p1}# ${p2}${p3}`;
-            }
-          );
-
-        jsonString = jsonString.replace(
-          keyValueString,
-          keyValueString + "," + prefixedKeyValueString
-        );
-      }
-    } while (keyIndex !== -1);
-
-    fs.writeFileSync(path, jsonString);
-  }
-
-  private getPreviousSpacingIndex(string: string, index: number) {
-    for (let i = index - 1; i >= 0; i--) {
-      if (!/\s/.test(string[i])) {
-        return i + 1;
-      }
     }
-
-    return -1;
-  }
-
-  private getParentBracketIndex(string: string, startAt: number) {
-    let closingBracketCount = 1;
-
-    for (let i = startAt; i >= 0; i--) {
-      if (string[i] === "}") {
-        closingBracketCount++;
-      } else if (string[i] === "{") {
-        closingBracketCount--;
-
-        if (closingBracketCount === 0) {
-          return i;
-        }
-      }
-    }
-
-    return -1;
-  }
-
-  private getClosingBracketIndex(string: string, startAt = 0) {
-    let openBracketCount = 0;
-
-    for (let i = startAt; i < string.length; i++) {
-      if (string[i] === "{") {
-        openBracketCount++;
-      } else if (string[i] === "}") {
-        openBracketCount--;
-
-        if (openBracketCount === 0) {
-          return i;
-        }
-      }
-    }
-
-    return -1;
   }
 
   private getComment() {

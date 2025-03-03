@@ -19,7 +19,7 @@ export default class ShopifyLiquid {
     );
     this.liquid = "";
 
-    this.init();
+    //this.init();
   }
 
   from(sectionName: string): ShopifyLiquid {
