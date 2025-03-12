@@ -16,13 +16,16 @@ let _settings: {
 };
 
 function getAppSettings() {
-  const configPath = path.resolve(
-    process.cwd(),
-    "shopify-theme-tools.config.json"
-  );
-
-  const data = fs.readFileSync(configPath, "utf-8");
-  return JSON.parse(data);
+  try {
+    const configPath = path.resolve(
+      process.cwd(),
+      "shopify-theme-tools.config.json"
+    );
+    const data = fs.readFileSync(configPath, "utf-8");
+    return JSON.parse(data);
+  } catch (e) {
+    return {};
+  }
 }
 
 export const settings = (() => {
