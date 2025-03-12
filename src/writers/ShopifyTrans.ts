@@ -1,23 +1,99 @@
 import fs from "fs";
 import path from "path";
 import stripJsonComments from "strip-json-comments";
+import { SectionSetting } from "../types";
+import { ShopifySectionSettingTypes } from "../factories/ShopifySectionSettingFactory";
+import { libreTranslateClient } from "../clients/libreTranslateClient";
 
 export default class ShopifyTrans {
   prefix: string;
   key: string;
   locales: string[];
   paths: { base: string[]; schema: string[] };
+  defaultLocale: string;
 
-  constructor(prefix: string, sectionName: string, locales: string[]) {
+  constructor(
+    prefix: string,
+    sectionName: string,
+    locales: string[] = ["en", "fr"],
+    defaultLocale: string = "en"
+  ) {
     this.prefix = prefix;
     this.key = sectionName;
     this.locales = locales;
     this.paths = { base: [], schema: [] };
+    this.defaultLocale = defaultLocale;
 
     this.init();
   }
 
-  addSectionSettings() {
+  async addSectionSettings(
+    sectionSettings: SectionSetting[]
+  ): Promise<ShopifyTrans> {
+    for (const path of this.paths.schema) {
+      console.log(path);
+      let jsonString = stripJsonComments(fs.readFileSync(path).toString());
+      const settings = JSON.parse(jsonString);
+
+      if (!settings?.sections) {
+        return this;
+      }
+
+      const transKey = this.prefix ? this.prefix + "-" + this.key : this.key;
+
+      if (!settings.sections[transKey]) {
+        return this;
+      }
+
+      settings.sections[transKey].settings =
+        settings.sections[transKey].settings || {};
+
+      for (const setting of sectionSettings) {
+        const settingProperties = {
+          label: setting.label,
+          default: [
+            ShopifySectionSettingTypes.checkbox,
+            ShopifySectionSettingTypes.number,
+            ShopifySectionSettingTypes.range,
+          ].includes(setting.type as ShopifySectionSettingTypes)
+            ? undefined
+            : setting.default,
+          info: setting.info,
+          placeholder: setting.placeholder,
+        };
+
+        if (settings.sections[transKey].settings[setting.id]) {
+          throw new Error(`Setting with id ${setting.id} already exists.`);
+        }
+
+        settings.sections[transKey].settings[setting.id] = {};
+
+        for (const [key, value] of Object.entries(settingProperties)) {
+          if (value) {
+            const currentLocale =
+              path.split("/").pop()?.split(".")[0] || this.defaultLocale;
+
+            settings.sections[transKey].settings[setting.id][key] =
+              path.includes(`${this.defaultLocale}.default`)
+                ? value
+                : await libreTranslateClient.translate(
+                    value.toString(),
+                    currentLocale
+                  );
+          }
+        }
+      }
+
+      fs.writeFileSync(
+        path,
+        this.getComment() + "\n" + JSON.stringify(settings, null, 2)
+      );
+    }
+
+    return this;
+  }
+
+  addDefaultSectionSettings(): ShopifyTrans {
     this.paths.schema.forEach((path) => {
       let jsonString = stripJsonComments(fs.readFileSync(path).toString());
       const settings = JSON.parse(jsonString);
@@ -55,6 +131,8 @@ export default class ShopifyTrans {
         this.getComment() + "\n" + JSON.stringify(settings, null, 2)
       );
     });
+
+    return this;
   }
 
   duplicateBase(): ShopifyTrans {
@@ -122,6 +200,7 @@ export default class ShopifyTrans {
   private init() {
     const processDir = process.cwd();
     const localesDir = path.join(processDir, "locales");
+
     const files = fs.readdirSync(localesDir);
 
     if (!files) {

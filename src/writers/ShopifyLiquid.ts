@@ -1,5 +1,14 @@
 import path from "path";
 import fs from "fs";
+import stripJsonComments from "strip-json-comments";
+import { type SectionSetting } from "../types";
+import {
+  headingSetting,
+  contentSetting,
+  paddingTopSetting,
+  paddingBottomSetting,
+} from "../constants/defaultSectionSettings";
+import { ShopifySectionSettingTypes } from "../factories/ShopifySectionSettingFactory";
 
 export default class ShopifyLiquid {
   private processDir: string;
@@ -15,7 +24,9 @@ export default class ShopifyLiquid {
     this.destinationPath = path.join(
       this.processDir,
       "sections",
-      this.prefix + "-" + this.sectionName + ".liquid"
+      `${this.prefix.length > 0 ? this.prefix + "-" : ""}${
+        this.sectionName
+      }.liquid`
     );
     this.liquid = "";
 
@@ -48,6 +59,63 @@ export default class ShopifyLiquid {
     return this;
   }
 
+  addSectionSettings(sectionSettings: SectionSetting[]): ShopifyLiquid {
+    const regex = /{% schema %}([{}":\.\-,\[\]\t\n\r\w\d\s]*){% endschema %}/;
+    const matchs = this.liquid.match(regex);
+
+    if (matchs && matchs[1]) {
+      const schema = JSON.parse(stripJsonComments(matchs[1]));
+
+      for (const sectionSetting of sectionSettings) {
+        const id = sectionSetting.id.replace(/ /g, "_");
+
+        schema.settings =
+          (schema.settings as SectionSetting[]) || ([] as SectionSetting[]);
+
+        if (
+          schema.settings.find((setting: SectionSetting) => setting.id === id)
+        ) {
+          console.log("\x1b[33m", `Warning: Setting already exists.\n`);
+          return this;
+        }
+
+        const transPrefix = `t:sections.${this.sectionName}.settings.${id}`;
+
+        schema.settings.push({
+          type: sectionSetting.type,
+          id,
+          label: `${transPrefix}.label`,
+          default: this.getSectionSettingDefaultValue(
+            sectionSetting,
+            transPrefix
+          ),
+          info: sectionSetting.info ? `${transPrefix}.info` : undefined,
+          min: sectionSetting.min ? sectionSetting.min : undefined,
+          max: sectionSetting.min ? sectionSetting.max : undefined,
+          step: sectionSetting.step ? sectionSetting.step : undefined,
+          unit: sectionSetting.unit ? sectionSetting.unit : undefined,
+          placeholder: sectionSetting.placeholder
+            ? `${transPrefix}.placeholder`
+            : undefined,
+          options: sectionSetting.options
+            ? sectionSetting.options.map((option, i) => {
+                return {
+                  label: `${transPrefix}.options__${i + 1}.label`,
+                  value: option.value,
+                };
+              })
+            : undefined,
+        });
+      }
+
+      this.liquid = this.liquid.slice(0, matchs.index) + "{% schema %}\n";
+      this.liquid += JSON.stringify(schema, null, 2) + "\n";
+      this.liquid += "{% endschema %}\n";
+    }
+
+    return this;
+  }
+
   createSection(
     hasBaseSetting: boolean,
     hasPaddingSetting: boolean
@@ -60,7 +128,10 @@ export default class ShopifyLiquid {
 
     this.liquid += this.getHtmlString(hasBaseSetting, hasPaddingSetting);
     this.liquid += "\n\n";
-    this.liquid += this.getSchemaString(hasBaseSetting, hasPaddingSetting);
+    this.liquid += this.getSchemaStringForSectionCreation(
+      hasBaseSetting,
+      hasPaddingSetting
+    );
 
     return this;
   }
@@ -171,6 +242,23 @@ export default class ShopifyLiquid {
 {%- endstyle -%}`;
   }
 
+  private getSectionSettingDefaultValue(
+    setting: SectionSetting,
+    transPrefix: string
+  ): string | undefined | number | boolean {
+    if (!setting.default) {
+      return undefined;
+    }
+
+    return [
+      ShopifySectionSettingTypes.checkbox,
+      ShopifySectionSettingTypes.number,
+      ShopifySectionSettingTypes.range,
+    ].includes(setting.type as ShopifySectionSettingTypes)
+      ? setting.default
+      : `${transPrefix}.default`;
+  }
+
   private getHtmlString(
     hasBaseSetting: boolean,
     hasPaddingSetting: boolean
@@ -187,50 +275,20 @@ export default class ShopifyLiquid {
     return this.indentHtml(htmlString);
   }
 
-  private getSchemaString(
+  private getSchemaStringForSectionCreation(
     hasBaseSetting: boolean,
     hasPaddingSetting: boolean
   ): string {
-    const settings = [];
+    const settings: SectionSetting[] = [];
 
     if (hasPaddingSetting) {
-      settings.push({
-        type: "range",
-        id: "padding_top",
-        min: 0,
-        max: 100,
-        step: 4,
-        unit: "px",
-        label: "t:sections.all.padding.padding_top",
-        default: 40,
-      });
-
-      settings.push({
-        type: "range",
-        id: "padding_bottom",
-        min: 0,
-        max: 100,
-        step: 4,
-        unit: "px",
-        label: "t:sections.all.padding.padding_bottom",
-        default: 40,
-      });
+      settings.push(paddingTopSetting);
+      settings.push(paddingBottomSetting);
     }
 
     if (hasBaseSetting) {
-      settings.push({
-        type: "richtext",
-        id: "heading",
-        label: "t:sections.all.heading.label",
-        default: "t:sections.all.heading.label",
-      });
-
-      settings.push({
-        type: "richtext",
-        id: "content",
-        label: "t:sections.all.content.label",
-        default: "t:sections.all.content.label",
-      });
+      settings.push(headingSetting);
+      settings.push(contentSetting);
     }
 
     this.liquid += this.getHtmlString(hasBaseSetting, hasPaddingSetting);
@@ -252,11 +310,13 @@ export default class ShopifyLiquid {
     return schemaString;
   }
 
-  private init() {
+  validateDestinationNotExists(): ShopifyLiquid {
     if (fs.existsSync(this.destinationPath)) {
       throw new Error(
         `Prefixed Section file ${this.prefix}-${this.sectionName} already exist`
       );
     }
+
+    return this;
   }
 }
