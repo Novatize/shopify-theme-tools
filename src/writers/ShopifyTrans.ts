@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import stripJsonComments from "strip-json-comments";
-import { SectionSetting } from "../types";
+import { SectionSetting, SectionSettingOption } from "../types";
 import { ShopifySectionSettingTypes } from "../factories/ShopifySectionSettingFactory";
 import { libreTranslateClient } from "../clients/libreTranslateClient";
 
@@ -31,7 +31,6 @@ export default class ShopifyTrans {
     sectionSettings: SectionSetting[]
   ): Promise<ShopifyTrans> {
     for (const path of this.paths.schema) {
-      console.log(path);
       let jsonString = stripJsonComments(fs.readFileSync(path).toString());
       const settings = JSON.parse(jsonString);
 
@@ -55,11 +54,14 @@ export default class ShopifyTrans {
             ShopifySectionSettingTypes.checkbox,
             ShopifySectionSettingTypes.number,
             ShopifySectionSettingTypes.range,
+            ShopifySectionSettingTypes.select,
+            ShopifySectionSettingTypes.radio,
           ].includes(setting.type as ShopifySectionSettingTypes)
             ? undefined
             : setting.default,
           info: setting.info,
           placeholder: setting.placeholder,
+          options: setting.options,
         };
 
         if (settings.sections[transKey].settings[setting.id]) {
@@ -73,13 +75,30 @@ export default class ShopifyTrans {
             const currentLocale =
               path.split("/").pop()?.split(".")[0] || this.defaultLocale;
 
-            settings.sections[transKey].settings[setting.id][key] =
-              path.includes(`${this.defaultLocale}.default`)
-                ? value
-                : await libreTranslateClient.translate(
-                    value.toString(),
-                    currentLocale
-                  );
+            if (key === "options") {
+              const options = value as SectionSettingOption[];
+              for (let i = 0; i < options.length; i++) {
+                const option = options[i];
+                settings.sections[transKey].settings[setting.id][
+                  "options__" + (i + 1)
+                ] = {
+                  label: path.includes(`${this.defaultLocale}.default`)
+                    ? option.label
+                    : await libreTranslateClient.translate(
+                        option.label,
+                        currentLocale
+                      ),
+                };
+              }
+            } else {
+              settings.sections[transKey].settings[setting.id][key] =
+                path.includes(`${this.defaultLocale}.default`)
+                  ? value
+                  : await libreTranslateClient.translate(
+                      value.toString(),
+                      currentLocale
+                    );
+            }
           }
         }
       }
