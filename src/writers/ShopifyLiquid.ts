@@ -247,7 +247,7 @@ export default class ShopifyLiquid {
   validateBlockTypeExists(blockType: string): boolean {
     const { data } = this.getSchema();
 
-    return data?.blocks.some(
+    return data?.blocks?.some(
       (block: ShopifySectionBlock) => block.type === blockType
     );
   }
@@ -255,7 +255,7 @@ export default class ShopifyLiquid {
   validateSectionSettingExists(settingId: string): boolean {
     const { data } = this.getSchema();
 
-    return data?.settings.some(
+    return data?.settings?.some(
       (setting: ShopifySectionSetting) => setting.id === settingId
     );
   }
