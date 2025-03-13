@@ -10,14 +10,20 @@ export default function sectionDuplicate() {
       {
         type: "input",
         name: "prefix",
-        message: "Prefix:",
+        message: "Prefix *:",
         default: "nova",
+        validate: (value) => {
+          return value ? true : "Prefix can't be empty";
+        },
       },
       {
         type: "input",
         name: "sectionFileName",
-        message: "Section filename to duplicate:",
-        default: "collection-list",
+        message: "Section filename *:",
+        default: "your-section-name",
+        validate: (value) => {
+          return value ? true : "Section filename can't be empty";
+        },
       },
       {
         type: "confirm",
@@ -33,14 +39,6 @@ export default function sectionDuplicate() {
       },
     ])
     .then((answers) => {
-      if (!answers.prefix) {
-        throw new Error("Prefix can't be empty");
-      }
-
-      if (!answers.sectionFileName) {
-        throw new Error("Section filename can't be empty");
-      }
-
       const liquid = new ShopifyLiquid(answers.prefix, answers.sectionFileName);
       const assetCreator = new ShopifyAssetCreator(
         answers.prefix,

@@ -6,6 +6,7 @@ import inquirer from "inquirer";
 import sectionCreate from "./commands/sectionCreate";
 import sectionDuplicate from "./commands/sectionDuplicate";
 import sectionSettingAdd from "./commands/sectionSettingAdd";
+import sectionBlockAdd from "./commands/sectionBlockAdd";
 import { libreTranslateClient } from "./clients/libreTranslateClient";
 import { settings } from "./settings";
 
@@ -16,8 +17,8 @@ async function run() {
   const commands: Record<string, () => void> = {
     "section:create": sectionCreate,
     "section:duplicate": sectionDuplicate,
-    "section:settings:add": sectionSettingAdd,
-    //"section:blocks:add": sectionBlocksAdd,
+    "section:setting:add": sectionSettingAdd,
+    "section:block:add": sectionBlockAdd,
   };
 
   try {
@@ -30,12 +31,7 @@ async function run() {
             name: "command",
             message: "Command:",
             default: "section:create",
-            choices: [
-              "section:create",
-              "section:duplicate",
-              "section:settings:add",
-              "section:blocks:add",
-            ],
+            choices: Object.keys(commands),
           },
         ])
       ).command;

@@ -2,7 +2,7 @@ import inquirer from "inquirer";
 import ShopifyLiquid from "../writers/ShopifyLiquid";
 import ShopifyTrans from "../writers/ShopifyTrans";
 import { ShopifySectionSettingFactory } from "../factories/ShopifySectionSettingFactory";
-import { type SectionSetting } from "../types";
+import { type ShopifySectionSetting } from "../types";
 
 export default async function sectionSettingAdd() {
   let addMore = true;
@@ -22,12 +22,12 @@ export default async function sectionSettingAdd() {
 
   const liquid = new ShopifyLiquid("", sectionAnswers.sectionFileName);
   const trans = new ShopifyTrans("", sectionAnswers.sectionFileName);
-  const sectionSettings: SectionSetting[] = [];
+  const sectionSettings: ShopifySectionSetting[] = [];
 
   liquid.from(sectionAnswers.sectionFileName);
 
   while (addMore) {
-    const setting = await ShopifySectionSettingFactory.build();
+    const setting = await ShopifySectionSettingFactory.build(liquid);
 
     if (!setting) {
       continue;

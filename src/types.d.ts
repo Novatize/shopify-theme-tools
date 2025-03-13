@@ -1,4 +1,11 @@
-export type SectionSetting = {
+export type ShopifySectionBlock = {
+  type: string;
+  name: string;
+  limit?: number;
+  settings?: ShopifySectionSetting[];
+};
+
+export type ShopifySectionSetting = {
   type: string;
   id: string;
   label: string;
@@ -12,7 +19,7 @@ export type SectionSetting = {
   placeholder?: string;
 };
 
-export type SectionSettingOption = {
+export type ShopifySettingOption = {
   value: string | number;
   label: string;
 };

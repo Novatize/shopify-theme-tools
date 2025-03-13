@@ -1,5 +1,9 @@
 import inquirer from "inquirer";
-import { SectionSetting, SectionSettingOption } from "../types";
+import {
+  type ShopifySectionSetting,
+  type ShopifySettingOption,
+} from "../types";
+import ShopifyLiquid from "../writers/ShopifyLiquid";
 
 export enum ShopifySectionSettingTypes {
   checkbox = "checkbox",
@@ -36,19 +40,16 @@ export enum ShopifySectionSettingTypes {
 }
 
 class ShopifySectionSettingFactoryClass {
-  async build(): Promise<SectionSetting | undefined> {
+  async build(
+    liquid?: ShopifyLiquid | null | undefined
+  ): Promise<ShopifySectionSetting | undefined> {
     const settingType = await this.getSettingType();
-    const settingBaseInfo = await this.getSettingBaseInfo();
-
-    if (!settingBaseInfo) {
-      return;
-    }
-
+    const settingBaseInfo = await this.getSettingBaseInfo(liquid);
     const settingDefaultValue = await this.getSettingDefaultValue(settingType);
     const settingInfo = await this.getSettingInfo();
     const settingExtraInfo = await this.getSettingExtraInfo(settingType);
 
-    const setting: SectionSetting = {
+    const setting: ShopifySectionSetting = {
       type: settingType,
       id: settingBaseInfo.id,
       label: settingBaseInfo.label,
@@ -74,31 +75,37 @@ class ShopifySectionSettingFactoryClass {
     return typeAnswers.settingType;
   }
 
-  async getSettingBaseInfo(): Promise<
-    { id: string; label: string } | undefined
-  > {
+  async getSettingBaseInfo(
+    liquid: ShopifyLiquid | null | undefined
+  ): Promise<{ id: string; label: string }> {
     const baseAnswers = await inquirer.prompt([
       {
         type: "input",
         name: "settingId",
         message: "Setting ID *:",
+        default: "your_setting_id",
+        validate: (value) => {
+          if (!value) {
+            return "Setting ID can't be empty";
+          }
+
+          if (liquid && liquid.validateSectionSettingExists(value)) {
+            return "Setting ID already exists";
+          }
+
+          return true;
+        },
       },
       {
         type: "input",
         name: "settingLabel",
+        default: "Your setting label",
         message: "Setting label *:",
+        validate: (value) => {
+          return value ? true : "Setting label can't be empty";
+        },
       },
     ]);
-
-    if (!baseAnswers.settingId) {
-      console.log("\x1b[31m", "Setting ID can't be empty \n");
-      return;
-    }
-
-    if (!baseAnswers.settingLabel) {
-      console.log("\x1b[31m", "Setting label can't be empty \n");
-      return;
-    }
 
     return { id: baseAnswers.settingId, label: baseAnswers.settingLabel };
   }
@@ -113,7 +120,7 @@ class ShopifySectionSettingFactoryClass {
           {
             type: "number",
             name: "settingDefault",
-            message: "Default value:",
+            message: "Setting default value:",
           },
         ]);
 
@@ -142,7 +149,7 @@ class ShopifySectionSettingFactoryClass {
           {
             type: "input",
             name: "settingDefault",
-            message: "Default value:",
+            message: "Setting default value:",
           },
         ]);
 
@@ -169,7 +176,7 @@ class ShopifySectionSettingFactoryClass {
 
   async getSettingExtraInfo(
     type: keyof typeof ShopifySectionSettingTypes
-  ): Promise<Partial<SectionSetting> | undefined> {
+  ): Promise<Partial<ShopifySectionSetting> | undefined> {
     switch (type) {
       case ShopifySectionSettingTypes.text:
       case ShopifySectionSettingTypes.textarea:
@@ -190,11 +197,17 @@ class ShopifySectionSettingFactoryClass {
             type: "number",
             name: "min",
             message: "Setting min *:",
+            validate: (value) => {
+              return value ? true : "Min can't be empty";
+            },
           },
           {
             type: "number",
             name: "max",
             message: "Setting max *:",
+            validate: (value) => {
+              return value ? true : "Max can't be empty";
+            },
           },
           {
             type: "number",
@@ -208,16 +221,6 @@ class ShopifySectionSettingFactoryClass {
           },
         ]);
 
-        if (!rangeAnswer.min === null || rangeAnswer.min === undefined) {
-          console.log("\x1b[31m", "Range min can't be empty \n");
-          return;
-        }
-
-        if (!rangeAnswer.max) {
-          console.log("\x1b[31m", "Range max can't be empty \n");
-          return;
-        }
-
         return {
           min: rangeAnswer.min,
           max: rangeAnswer.max,
@@ -227,31 +230,27 @@ class ShopifySectionSettingFactoryClass {
       case ShopifySectionSettingTypes.radio:
       case ShopifySectionSettingTypes.select:
         let addMoreOption = true;
-        const options: SectionSettingOption[] = [];
+        const options: ShopifySettingOption[] = [];
 
         while (addMoreOption) {
           const optionAnswer = await inquirer.prompt([
             {
               type: "input",
               name: "optionLabel",
-              message: "Setting option label *:",
+              message: "Option label *:",
+              validate: (value) => {
+                return value ? true : "Option label can't be empty";
+              },
             },
             {
               type: "input",
               name: "optionValue",
-              message: "Setting option value *:",
+              message: "Option value *:",
+              validate: (value) => {
+                return value ? true : "Option value can't be empty";
+              },
             },
           ]);
-
-          if (!optionAnswer.optionLabel) {
-            console.log("\x1b[31m", "Option label can't be empty \n");
-            continue;
-          }
-
-          if (!optionAnswer.optionLabel) {
-            console.log("\x1b[31m", "Option value can't be empty \n");
-            continue;
-          }
 
           options.push({
             label: optionAnswer.optionLabel,
